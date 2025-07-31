@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Wheel - ROT Cipher Cracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 4rem;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            letter-spacing: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
+            to { text-shadow: 0 0 40px rgba(255, 215, 0, 0.8), 0 0 50px rgba(255, 165, 0, 0.6); }
+        }
+        
+        .game-area {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-label {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #FFD700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        #messageInput {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            color: #fff;
+            transition: all 0.3s;
+        }
+        
+        #messageInput:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .letter-display {
+            min-height: 200px;
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        .letter-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+            min-height: 60px;
+        }
+        
+        .letter-box {
+            width: 50px;
+            height: 60px;
+            margin: 5px;
+            background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .letter-box.space {
+            background: transparent;
+            border: none;
+            width: 30px;
+        }
+        
+        .word-group {
+            display: inline-flex;
+            margin: 5px 3px;
+            position: relative;
+            vertical-align: top;
+        }
+        
+        .word-group.misspelled::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 3" width="6" height="3"><path d="M0 3 L3 0 L6 3" stroke="%23ff0000" stroke-width="0.8" fill="none"/></svg>');
+            background-repeat: repeat-x;
+            background-size: 6px 3px;
+            opacity: 0.8;
+        }
+        
+        .letter-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.3), transparent);
+            transform: rotate(45deg);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .letter-box:hover::before {
+            opacity: 1;
+        }
+        
+        
+        .cipher-wheel-container {
+            position: fixed;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 300px;
+            height: 300px;
+            z-index: 10;
+        }
+        
+        .cipher-wheel {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: opacity 2s ease-in-out;
+            cursor: grab;
+        }
+        
+        .cipher-wheel.dragging {
+            cursor: grabbing;
+        }
+        
+        .wheel.no-transition {
+            transition: none !important;
+        }
+        
+        .cipher-wheel.faded {
+            opacity: 0.3;
+        }
+        
+        .scan-button {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 30px;
+            background: linear-gradient(145deg, #0ff, #00cccc);
+            border: none;
+            border-radius: 25px;
+            color: #1a1a2e;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+            transition: all 0.3s;
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .scan-button.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .scan-button:hover {
+            background: linear-gradient(145deg, #00cccc, #009999);
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.5);
+            transform: translateX(-50%) translateY(-2px);
+        }
+        
+        .scan-button:active {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .wheel {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease-out;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .outer-wheel {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+            border: 4px solid #FFD700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.5);
+            animation: rotateClockwise 20s linear infinite;
+            transform-origin: center center;
+        }
+        
+        .outer-wheel.locked {
+            animation-play-state: paused;
+        }
+        
+        .inner-wheel {
+            width: 70%;
+            height: 70%;
+            background: linear-gradient(145deg, #3a3a4e, #2a2a3e);
+            border: 3px solid #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 15px rgba(0, 0, 0, 0.5);
+            animation: rotateCounterClockwise 15s linear infinite;
+            transform-origin: center center;
+        }
+        
+        .inner-wheel.locked {
+            animation-play-state: paused;
+        }
+        
+        @keyframes rotateClockwise {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        @keyframes rotateCounterClockwise {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(-360deg); }
+        }
+        
+        /* Keep letters upright while wheel rotates */
+        .outer-wheel .wheel-letter {
+            animation: counterRotateClockwise 20s linear infinite;
+        }
+        
+        .inner-wheel .wheel-letter {
+            animation: counterRotateCounterClockwise 15s linear infinite;
+        }
+        
+        .outer-wheel.locked .wheel-letter,
+        .inner-wheel.locked .wheel-letter {
+            animation-play-state: paused;
+        }
+        
+        @keyframes counterRotateClockwise {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(-360deg); }
+        }
+        
+        @keyframes counterRotateCounterClockwise {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .wheel-letter {
+            position: absolute;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .outer-wheel .wheel-letter {
+            font-size: 1.2rem;
+            color: #FFD700;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+        
+        .inner-wheel .wheel-letter {
+            font-size: 1rem;
+            color: #0ff;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+        
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.5rem;
+            color: #1a1a2e;
+        }
+        
+        .alignment-indicator {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid #FFD700;
+            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+        }
+        
+        @keyframes oscillate {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        
+        .oscillating {
+            animation: oscillate 2s ease-in-out infinite;
+        }
+        
+        .status-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .status-title {
+            font-family: 'Orbitron', monospace;
+            color: #0ff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        #rotStatus {
+            font-size: 2rem;
+            color: #FFD700;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fanfare {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            color: #FFD700;
+            font-family: 'Bebas Neue', cursive;
+            text-shadow: 0 0 30px #FFD700;
+            animation: fanfareAnimation 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        @keyframes fanfareAnimation {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5) rotate(-180deg);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.5) rotate(180deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2) rotate(360deg);
+            }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #FFD700;
+            animation: confettiFall 3s linear forwards;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        @keyframes confettiFall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .instructions h2 {
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-family: 'Bebas Neue', cursive;
+            letter-spacing: 2px;
+        }
+        
+        .instructions p {
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CIPHER WHEEL</h1>
+            <p style="color: #0ff; font-family: 'Orbitron', monospace; letter-spacing: 3px;">ROT CIPHER CRACKER</p>
+        </header>
+        
+        <div class="game-area" style="background: rgba(0, 255, 255, 0.05); border: 2px solid #0ff;">
+            <h2 style="font-family: 'Bebas Neue', cursive; color: #0ff; font-size: 2rem; margin-bottom: 20px; text-align: center;">STEP 1: CREATE YOUR SECRET MESSAGE</h2>
+            
+            <div class="encoding-section">
+                <div style="display: flex; gap: 30px; margin-bottom: 20px; align-items: start;">
+                    <div style="width: 150px;">
+                        <div class="input-label" style="text-align: center;">ROT Key:</div>
+                        <div class="rot-selector-container" style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
+                            <div class="rot-selector-marker" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 20;">
+                                <svg width="20" height="20" viewBox="0 0 20 20" style="filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));">
+                                    <polygon points="0,0 20,0 10,20" fill="#FFD700"/>
+                                    <text x="10" y="10" text-anchor="middle" font-family="Orbitron" font-size="10" font-weight="bold" fill="#1a1a2e">A</text>
+                                </svg>
+                            </div>
+                            <div class="rot-selector-wheel" id="rotSelectorWheel" style="width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(145deg, #2a2a3e, #1a1a2e); border: 3px solid #0ff; position: relative; cursor: grab; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);">
+                                <div class="rot-selector-numbers" id="rotSelectorNumbers"></div>
+                                <div class="rot-selector-center" id="rotValue" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: radial-gradient(circle, #0ff, #00cccc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: bold; color: #000; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3); z-index: 5;">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="plaintextInput" class="input-label">Your Message:</label>
+                        <input type="text" id="plaintextInput" placeholder="Type your secret message here..." autocomplete="off" style="width: 100%; padding: 15px; font-size: 1.1rem; background: rgba(255, 255, 255, 0.1); border: 2px solid #0ff; border-radius: 10px; color: #fff;">
+                    </div>
+                </div>
+                
+                <div style="background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 20px; margin-bottom: 15px;">
+                    <div style="font-family: 'Orbitron', monospace; color: #0ff; margin-bottom: 10px; text-transform: uppercase;">Encoded Message:</div>
+                    <div id="encodedOutput" style="font-size: 1.3rem; color: #FFD700; word-break: break-all; min-height: 40px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 5px; font-family: monospace;"></div>
+                </div>
+                
+                <button id="copyButton" style="background: linear-gradient(145deg, #0ff, #00cccc); color: #000; border: none; padding: 12px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 25px; cursor: pointer; transition: all 0.3s; font-family: 'Orbitron', monospace; text-transform: uppercase; letter-spacing: 2px;">
+                    Copy Encoded Message
+                </button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <div style="font-size: 3rem; color: #FFD700; animation: bounce 2s infinite;">↓</div>
+        </div>
+        
+        <style>
+            @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(10px); }
+            }
+            
+            #copyButton:hover {
+                transform: scale(1.05);
+                box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            }
+            
+            #copyButton:active {
+                transform: scale(0.95);
+            }
+            
+            select option {
+                background: #1a1a2e;
+                color: #fff;
+            }
+        </style>
+        
+        <div class="game-area">
+            <h2 style="font-family: 'Bebas Neue', cursive; color: #FFD700; font-size: 2rem; margin-bottom: 20px; text-align: center;">STEP 2: DECODE YOUR PARTNER'S MESSAGE</h2>
+            <div class="input-section">
+                <div class="input-label">Enter Encoded Message:</div>
+                <input type="text" id="messageInput" placeholder="Type your ROT-encoded message here..." autocomplete="off">
+            </div>
+            
+            <div class="letter-display">
+                <div class="letter-row" id="originalRow"></div>
+                <div class="letter-row" id="decodedRow"></div>
+            </div>
+            
+            <div class="status-panel">
+                <div class="status-title">Decryption Status</div>
+                <div id="rotStatus">Waiting for input...</div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to Play - Partner Activity</h2>
+            <p><strong>Step 1:</strong> Work in pairs - one person is Alice (sender) and one is Bob (receiver)</p>
+            <p><strong>Step 2:</strong> Alice: Create a secret message in the blue encoding box above</p>
+            <p><strong>Step 3:</strong> Alice: Choose a ROT key using the dial (remember this number!)</p>
+            <p><strong>Step 4:</strong> Alice: Copy your encoded message and give it to Bob</p>
+            <p><strong>Step 5:</strong> Bob: Paste the encoded message in the decoder box</p>
+            <p><strong>Step 6:</strong> Bob: Watch the cipher wheel automatically find the key!</p>
+            <p><strong>Step 7:</strong> Compare the ROT number - it should match what Alice chose</p>
+            <p><strong>Bonus:</strong> Try grabbing the decoder wheel to manually find the solution!</p>
+        </div>
+    </div>
+    
+    <div class="cipher-wheel-container">
+        <div class="cipher-wheel">
+            <div class="alignment-indicator"></div>
+            <div class="wheel outer-wheel" id="outerWheel"></div>
+            <div class="wheel inner-wheel" id="innerWheel"></div>
+            <div class="wheel-center" id="wheelCenter">?</div>
+        </div>
+        <button class="scan-button" id="scanButton">SCAN</button>
+    </div>
+    
+    <script>
+        const messageInput = document.getElementById('messageInput');
+        const originalRow = document.getElementById('originalRow');
+        const decodedRow = document.getElementById('decodedRow');
+        const rotStatus = document.getElementById('rotStatus');
+        const outerWheel = document.getElementById('outerWheel');
+        const innerWheel = document.getElementById('innerWheel');
+        const wheelCenter = document.getElementById('wheelCenter');
+        const cipherWheel = document.querySelector('.cipher-wheel');
+        const plaintextInput = document.getElementById('plaintextInput');
+        const encodedOutput = document.getElementById('encodedOutput');
+        const copyButton = document.getElementById('copyButton');
+        const rotSelectorWheel = document.getElementById('rotSelectorWheel');
+        const rotSelectorNumbers = document.getElementById('rotSelectorNumbers');
+        const rotValueDisplay = document.getElementById('rotValue');
+        
+        let currentRotKey = 0;
+        let isDraggingSelector = false;
+        let selectorStartAngle = 0;
+        let wheelStartRotation = 0;
+        
+        // Manual mode variables
+        let isManualMode = false;
+        let isDraggingDecoder = false;
+        let decoderStartAngle = 0;
+        let decoderWheelStartRotation = 0;
+        let manualOffset = 0;
+        const scanButton = document.getElementById('scanButton');
+        
+        // Initialize ROT selector wheel
+        function initializeRotSelector() {
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const radius = 55;
+            for (let i = 0; i < 26; i++) {
+                const letter = document.createElement('div');
+                letter.className = 'rot-letter';
+                letter.textContent = alphabet[i];
+                const angle = (i * 360 / 26) - 90; // Start from top
+                const angleRad = angle * Math.PI / 180;
+                const x = Math.cos(angleRad) * radius;
+                const y = Math.sin(angleRad) * radius;
+                letter.style.position = 'absolute';
+                letter.style.left = `calc(50% + ${x}px)`;
+                letter.style.top = `calc(50% + ${y}px)`;
+                // Rotate each letter to face outward from center (like on a coin)
+                letter.style.transform = `translate(-50%, -50%) rotate(${angle + 90}deg)`;
+                letter.style.fontSize = '0.8rem';
+                letter.style.color = '#0ff';
+                letter.style.fontFamily = "'Orbitron', monospace";
+                letter.style.fontWeight = 'bold';
+                rotSelectorNumbers.appendChild(letter);
+            }
+        }
+        
+        // Get angle from mouse position
+        function getAngleFromMouse(e, element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+            return angle + 90; // Adjust so 0 is at top
+        }
+        
+        // Update ROT key based on rotation
+        function updateRotKey(rotation) {
+            // Normalize rotation to 0-360
+            let normalizedRotation = ((-rotation % 360) + 360) % 360;
+            // Convert rotation to ROT value (0-25)
+            // When A is at top, ROT is 0. When B is at top, ROT is 1, etc.
+            let rotValue = Math.round(normalizedRotation / (360 / 26)) % 26;
+            
+            currentRotKey = rotValue;
+            rotValueDisplay.textContent = rotValue;
+            updateEncodedMessage();
+        }
+        
+        // Mouse events for ROT selector
+        rotSelectorWheel.addEventListener('mousedown', (e) => {
+            isDraggingSelector = true;
+            rotSelectorWheel.style.cursor = 'grabbing';
+            selectorStartAngle = getAngleFromMouse(e, rotSelectorWheel);
+            const currentRotation = rotSelectorWheel.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+            wheelStartRotation = currentRotation ? parseFloat(currentRotation[1]) : 0;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingSelector) return;
+            
+            const currentAngle = getAngleFromMouse(e, rotSelectorWheel);
+            const angleDiff = currentAngle - selectorStartAngle;
+            const newRotation = wheelStartRotation + angleDiff;
+            
+            rotSelectorWheel.style.transform = `rotate(${newRotation}deg)`;
+            // Counter-rotate the center number to keep it upright
+            rotValueDisplay.style.transform = `translate(-50%, -50%) rotate(${-newRotation}deg)`;
+            updateRotKey(newRotation);
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isDraggingSelector) {
+                isDraggingSelector = false;
+                rotSelectorWheel.style.cursor = 'grab';
+            }
+            if (isDraggingDecoder) {
+                isDraggingDecoder = false;
+                cipherWheel.classList.remove('dragging');
+            }
+        });
+        
+        // Initialize cipher wheels with alphabet letters
+        function initializeWheels() {
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const radius = 140; // Outer wheel radius
+            const innerRadius = 95; // Inner wheel radius
+            
+            // Create outer wheel letters
+            for (let i = 0; i < 26; i++) {
+                const letter = document.createElement('div');
+                letter.className = 'wheel-letter';
+                letter.textContent = alphabet[i];
+                const angle = (i * 360 / 26) - 90; // Start from top
+                const x = Math.cos(angle * Math.PI / 180) * radius;
+                const y = Math.sin(angle * Math.PI / 180) * radius;
+                letter.style.left = `calc(50% + ${x}px)`;
+                letter.style.top = `calc(50% + ${y}px)`;
+                letter.style.transform = 'translate(-50%, -50%)';
+                letter.setAttribute('data-rotation', angle + 90); // Store original rotation
+                outerWheel.appendChild(letter);
+            }
+            
+            // Create inner wheel letters
+            for (let i = 0; i < 26; i++) {
+                const letter = document.createElement('div');
+                letter.className = 'wheel-letter';
+                letter.textContent = alphabet[i];
+                const angle = (i * 360 / 26) - 90; // Start from top
+                const x = Math.cos(angle * Math.PI / 180) * innerRadius;
+                const y = Math.sin(angle * Math.PI / 180) * innerRadius;
+                letter.style.left = `calc(50% + ${x}px)`;
+                letter.style.top = `calc(50% + ${y}px)`;
+                // Rotate each letter to face outward from center (like on a coin)
+                letter.style.transform = `translate(-50%, -50%) rotate(${angle + 90}deg)`;
+                letter.setAttribute('data-rotation', angle + 90); // Store original rotation
+                innerWheel.appendChild(letter);
+            }
+        }
+        
+        // Common English words for pattern matching (expanded)
+        const commonWords = ['THE', 'BE', 'TO', 'OF', 'AND', 'A', 'IN', 'THAT', 'HAVE', 
+                           'I', 'IT', 'FOR', 'NOT', 'ON', 'WITH', 'HE', 'AS', 'YOU', 
+                           'DO', 'AT', 'THIS', 'BUT', 'HIS', 'BY', 'FROM', 'WE', 'SAY',
+                           'HER', 'SHE', 'OR', 'AN', 'WILL', 'MY', 'ONE', 'ALL', 'WOULD',
+                           'THERE', 'THEIR', 'WHAT', 'SO', 'UP', 'OUT', 'IF', 'ABOUT',
+                           'WHO', 'GET', 'WHICH', 'GO', 'ME', 'WHEN', 'MAKE', 'CAN',
+                           'LIKE', 'TIME', 'NO', 'JUST', 'HIM', 'KNOW', 'TAKE', 'PEOPLE',
+                           'INTO', 'YEAR', 'YOUR', 'GOOD', 'SOME', 'COULD', 'THEM', 'SEE',
+                           'OTHER', 'THAN', 'THEN', 'NOW', 'LOOK', 'ONLY', 'COME', 'ITS',
+                           'OVER', 'THINK', 'ALSO', 'BACK', 'AFTER', 'USE', 'TWO', 'HOW',
+                           'WORK', 'FIRST', 'WELL', 'WAY', 'EVEN', 'NEW', 'WANT', 'BECAUSE',
+                           'ANY', 'THESE', 'GIVE', 'DAY', 'MOST', 'US', 'FIND', 'WHERE',
+                           'MUCH', 'TOO', 'VERY', 'SAME', 'TELL', 'THROUGH', 'LONG', 'DOWN',
+                           'SHOULD', 'CALL', 'WORLD', 'OVER', 'SCHOOL', 'STILL', 'TRY', 'LAST',
+                           'ASK', 'NEED', 'TOO', 'FEEL', 'THREE', 'STATE', 'NEVER', 'BECOME',
+                           'BETWEEN', 'HIGH', 'REALLY', 'SOMETHING', 'MOST', 'ANOTHER', 'FAMILY',
+                           'OWN', 'LEAVE', 'PUT', 'OLD', 'WHILE', 'MEAN', 'KEEP', 'STUDENT',
+                           'WHY', 'LET', 'GREAT', 'GROUP', 'BEGIN', 'SEEM', 'COUNTRY', 'HELP',
+                           'TALK', 'TURN', 'PROBLEM', 'EVERY', 'START', 'HAND', 'MIGHT', 'SHOW',
+                           'PART', 'AGAINST', 'PLACE', 'SUCH', 'AGAIN', 'FEW', 'CASE', 'WEEK',
+                           'COMPANY', 'SYSTEM', 'EACH', 'RIGHT', 'PROGRAM', 'QUESTION', 'DURING',
+                           'GOVERNMENT', 'PLAY', 'SMALL', 'NUMBER', 'OFF', 'ALWAYS', 'MOVE', 'NIGHT',
+                           'LIVE', 'POINT', 'BELIEVE', 'TODAY', 'HOLD', 'BRING', 'HAPPEN', 'NEXT',
+                           'WITHOUT', 'BEFORE', 'LARGE', 'MILLION', 'MUST', 'HOME', 'UNDER', 'WATER',
+                           'ROOM', 'WRITE', 'MOTHER', 'AREA', 'NATIONAL', 'MONEY', 'STORY', 'FACT',
+                           'MONTH', 'LOT', 'STUDY', 'BOOK', 'EYE', 'JOB', 'WORD', 'BUSINESS', 'ISSUE',
+                           'SIDE', 'KIND', 'FOUR', 'HEAD', 'FAR', 'BLACK', 'LONG', 'BOTH', 'LITTLE',
+                           'HOUSE', 'YES', 'SINCE', 'PROVIDE', 'SERVICE', 'AROUND', 'FRIEND', 'IMPORTANT',
+                           'FATHER', 'SIT', 'AWAY', 'UNTIL', 'POWER', 'HOUR', 'GAME', 'OFTEN', 'YET',
+                           'LINE', 'POLITICAL', 'END', 'AMONG', 'EVER', 'STAND', 'BAD', 'LOSE', 'HOWEVER',
+                           'MEMBER', 'PAY', 'LAW', 'MEET', 'CAR', 'CITY', 'ALMOST', 'INCLUDE', 'CONTINUE',
+                           'SET', 'LATER', 'COMMUNITY', 'NAME', 'FIVE', 'ONCE', 'WHITE', 'LEAST', 'PRESIDENT',
+                           'LEARN', 'REAL', 'CHANGE', 'TEAM', 'MINUTE', 'BEST', 'SEVERAL', 'IDEA', 'KID',
+                           'BODY', 'INFORMATION', 'NOTHING', 'AGO', 'LEAD', 'SOCIAL', 'UNDERSTAND', 'WHETHER',
+                           'WATCH', 'TOGETHER', 'FOLLOW', 'PARENT', 'STOP', 'FACE', 'ANYTHING', 'CREATE',
+                           'PUBLIC', 'ALREADY', 'SPEAK', 'OTHERS', 'READ', 'LEVEL', 'ALLOW', 'ADD', 'OFFICE',
+                           'SPEND', 'DOOR', 'HEALTH', 'PERSON', 'ART', 'SURE', 'WAR', 'HISTORY', 'PARTY',
+                           'WITHIN', 'GROW', 'RESULT', 'OPEN', 'MORNING', 'WALK', 'REASON', 'LOW', 'WIN',
+                           'RESEARCH', 'GIRL', 'GUY', 'EARLY', 'FOOD', 'MOMENT', 'HIMSELF', 'AIR', 'TEACHER',
+                           'FORCE', 'OFFER', 'ENOUGH', 'EDUCATION', 'ACROSS', 'ALTHOUGH', 'REMEMBER', 'FOOT',
+                           'SECOND', 'BOY', 'MAYBE', 'TOWARD', 'ABLE', 'AGE', 'POLICY', 'EVERYTHING', 'LOVE',
+                           'PROCESS', 'MUSIC', 'INCLUDING', 'CONSIDER', 'APPEAR', 'ACTUALLY', 'BUY', 'PROBABLY',
+                           'HUMAN', 'WAIT', 'SERVE', 'MARKET', 'DIE', 'SEND', 'EXPECT', 'SENSE', 'BUILD', 'STAY',
+                           'FALL', 'CUT', 'REACH', 'KILL', 'REMAIN', 'YES', 'SUGGEST', 'CLASS', 'OFFICIAL',
+                           'HELLO', 'WORLD', 'TEST', 'EXAMPLE', 'MESSAGE', 'SECRET', 'CODE', 'CIPHER'];
+        
+        // Common bigrams and trigrams
+        const commonBigrams = ['TH', 'HE', 'IN', 'ER', 'AN', 'RE', 'ED', 'ON', 'ES', 'ST',
+                             'EN', 'AT', 'TO', 'NT', 'HA', 'ND', 'OU', 'EA', 'NG', 'AS',
+                             'OR', 'TI', 'IS', 'ET', 'IT', 'AR', 'TE', 'SE', 'HI', 'OF'];
+        
+        const commonTrigrams = ['THE', 'AND', 'ING', 'ION', 'TIO', 'ENT', 'ATI', 'FOR',
+                              'HER', 'TER', 'INT', 'ERE', 'CON', 'TED', 'COM', 'HAT',
+                              'VER', 'HIS', 'THI', 'NOT'];
+        
+        let currentOffset = null;
+        let isAnalyzing = false;
+        let isLocked = false;
+        let confidenceScores = {};
+        let oscillationInterval = null;
+        let lockedConfidence = 0;
+        let previousTextLength = 0;
+        let wheelAnimation = null;
+        let topCandidates = [];
+        let lastAnalysisResult = null;
+        
+        // Align wheels when cipher is cracked
+        function alignWheels(offset) {
+            const rotationAngle = offset * (360 / 26);
+            outerWheel.style.animation = 'none';
+            innerWheel.style.animation = 'none';
+            
+            // Stop letter animations
+            const outerLetters = outerWheel.querySelectorAll('.wheel-letter');
+            const innerLetters = innerWheel.querySelectorAll('.wheel-letter');
+            outerLetters.forEach(letter => letter.style.animation = 'none');
+            innerLetters.forEach(letter => letter.style.animation = 'none');
+            
+            // Remove any existing transitions first
+            outerWheel.style.transition = 'none';
+            innerWheel.style.transition = 'none';
+            
+            // Set up smooth transition for this alignment
+            setTimeout(() => {
+                outerWheel.style.transition = 'transform 1s ease-out';
+                innerWheel.style.transition = 'transform 1s ease-out';
+                
+                // Set the rotation to align the letters - inner wheel rotates
+                outerWheel.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+                innerWheel.style.transform = `translate(-50%, -50%) rotate(${rotationAngle}deg)`;
+            }, 10);
+            
+            // Add locked class for visual feedback
+            outerWheel.classList.add('locked');
+            innerWheel.classList.add('locked');
+            
+            // Fade out the wheels when locked
+            setTimeout(() => {
+                cipherWheel.classList.add('faded');
+            }, 500);
+            
+            // Update center display
+            wheelCenter.textContent = offset;
+            wheelCenter.style.background = 'radial-gradient(circle, #00ff00, #00cc00)';
+        }
+        
+        // Reset wheels to spinning state
+        function resetWheels() {
+            // Fade in before resetting
+            cipherWheel.classList.remove('faded');
+            
+            outerWheel.classList.remove('locked');
+            innerWheel.classList.remove('locked');
+            outerWheel.classList.remove('oscillating');
+            innerWheel.classList.remove('oscillating');
+            outerWheel.style.animation = '';
+            innerWheel.style.animation = '';
+            outerWheel.classList.remove('no-transition');
+            innerWheel.classList.remove('no-transition');
+            outerWheel.style.transform = '';
+            innerWheel.style.transform = '';
+            
+            // Reset letter animations
+            const outerLetters = outerWheel.querySelectorAll('.wheel-letter');
+            const innerLetters = innerWheel.querySelectorAll('.wheel-letter');
+            outerLetters.forEach(letter => {
+                letter.style.animation = '';
+                letter.style.transform = 'translate(-50%, -50%)';
+            });
+            innerLetters.forEach((letter, i) => {
+                letter.style.animation = '';
+                const angle = (i * 360 / 26) - 90;
+                letter.style.transform = `translate(-50%, -50%) rotate(${angle + 90}deg)`;
+            });
+            
+            wheelCenter.textContent = '?';
+            wheelCenter.style.background = 'radial-gradient(circle, #FFD700, #FFA500)';
+            
+            if (oscillationInterval) {
+                clearInterval(oscillationInterval);
+                oscillationInterval = null;
+            }
+            if (wheelAnimation) {
+                cancelAnimationFrame(wheelAnimation);
+                wheelAnimation = null;
+            }
+        }
+        
+        // Animate wheels oscillating between top candidates
+        function animateWheelSearch(candidates, originalText) {
+            // Don't animate if in manual mode
+            if (isManualMode) return;
+            
+            // Clear any existing animations
+            if (wheelAnimation) {
+                cancelAnimationFrame(wheelAnimation);
+            }
+            if (oscillationInterval) {
+                clearInterval(oscillationInterval);
+            }
+            
+            // Fade in the wheels when starting to search
+            cipherWheel.classList.remove('faded');
+            
+            // Stop base animations
+            outerWheel.style.animation = 'none';
+            innerWheel.style.animation = 'none';
+            
+            const outerLetters = outerWheel.querySelectorAll('.wheel-letter');
+            const innerLetters = innerWheel.querySelectorAll('.wheel-letter');
+            
+            // Use only top 2 candidates for oscillation
+            const topTwo = candidates.slice(0, 2);
+            if (topTwo.length === 1) {
+                topTwo.push(topTwo[0]); // Duplicate if only one candidate
+            }
+            
+            let direction = 1;
+            let currentRotation = topTwo[0].offset * (360 / 26);
+            let targetIndex = 1;
+            const ROTATION_SPEED = 1.5; // Degrees per frame
+            const PAUSE_DURATION = 800; // Pause at each position
+            let pauseTime = 0;
+            let isPaused = false;
+            
+            function animate() {
+                if (isLocked) return;
+                
+                if (isPaused) {
+                    pauseTime += 16;
+                    if (pauseTime >= PAUSE_DURATION) {
+                        isPaused = false;
+                        pauseTime = 0;
+                        // Switch direction
+                        targetIndex = targetIndex === 0 ? 1 : 0;
+                    }
+                } else {
+                    const targetRotation = topTwo[targetIndex].offset * (360 / 26);
+                    const diff = targetRotation - currentRotation;
+                    const normalizedDiff = ((diff + 180) % 360) - 180;
+                    
+                    if (Math.abs(normalizedDiff) > ROTATION_SPEED) {
+                        currentRotation += Math.sign(normalizedDiff) * ROTATION_SPEED;
+                        
+                        // Update decoding in real-time based on current rotation
+                        const currentOffset = Math.round(currentRotation / (360 / 26)) % 26;
+                        const decoded = rotCipher(originalText, currentOffset);
+                        displayLetters(decoded, decodedRow, true, true); // No animation for smooth updates
+                        
+                        // Update wheel center with transitioning value
+                        wheelCenter.textContent = currentOffset;
+                        const progress = Math.abs(normalizedDiff) / Math.abs(targetRotation - topTwo[targetIndex === 0 ? 1 : 0].offset * (360 / 26));
+                        const confidence = topTwo[targetIndex].confidence * (1 - progress) + topTwo[targetIndex === 0 ? 1 : 0].confidence * progress;
+                        wheelCenter.style.background = `radial-gradient(circle, rgba(255, 204, 0, ${confidence / 100}), rgba(255, 153, 0, ${confidence / 100}))`;
+                    } else {
+                        currentRotation = targetRotation;
+                        isPaused = true;
+                        
+                        // Update with exact candidate values
+                        const candidate = topTwo[targetIndex];
+                        currentOffset = candidate.offset;
+                        const decoded = rotCipher(originalText, currentOffset);
+                        displayLetters(decoded, decodedRow, true, true); // No animation for smooth updates
+                        
+                        wheelCenter.textContent = `${candidate.offset}`;
+                        wheelCenter.style.background = `radial-gradient(circle, rgba(255, 204, 0, ${candidate.confidence / 100}), rgba(255, 153, 0, ${candidate.confidence / 100}))`;
+                        rotStatus.textContent = `ROT-${topTwo[0].offset} (${topTwo[0].confidence.toFixed(0)}%) ↔ ROT-${topTwo[1].offset} (${topTwo[1].confidence.toFixed(0)}%)`;
+                    }
+                    
+                    // Apply rotation - inner wheel rotates smoothly
+                    outerWheel.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+                    innerWheel.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
+                }
+                
+                wheelAnimation = requestAnimationFrame(animate);
+            }
+            
+            // Start animation
+            currentOffset = topTwo[0].offset;
+            animate();
+        }
+        
+        // ROT cipher function
+        function rotCipher(text, shift) {
+            return text.split('').map(char => {
+                const code = char.charCodeAt(0);
+                if (code >= 65 && code <= 90) { // Uppercase
+                    return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+                } else if (code >= 97 && code <= 122) { // Lowercase
+                    return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+                }
+                return char;
+            }).join('');
+        }
+        
+        // Additional dictionary words (common words not in the basic list)
+        const additionalWords = ['FORMULA', 'CALCULATE', 'COMPUTER', 'PROGRAM', 'ENCODE', 'DECODE', 
+                               'ALGORITHM', 'SCIENCE', 'MATHEMATICS', 'PHYSICS', 'CHEMISTRY', 'BIOLOGY',
+                               'UNIVERSITY', 'COLLEGE', 'STUDENT', 'TEACHER', 'PROFESSOR', 'LECTURE',
+                               'DOCUMENT', 'REPORT', 'ANALYSIS', 'RESEARCH', 'EXPERIMENT', 'RESULT',
+                               'QUESTION', 'ANSWER', 'PROBLEM', 'SOLUTION', 'METHOD', 'SYSTEM',
+                               'DATABASE', 'NETWORK', 'INTERNET', 'WEBSITE', 'SERVER', 'CLIENT',
+                               'USERNAME', 'PASSWORD', 'SECURITY', 'PROTECT', 'DEFEND', 'ATTACK',
+                               'LANGUAGE', 'ENGLISH', 'SPANISH', 'FRENCH', 'GERMAN', 'ITALIAN',
+                               'CHINESE', 'JAPANESE', 'RUSSIAN', 'ARABIC', 'HINDI', 'PORTUGUESE',
+                               'BREAKFAST', 'LUNCH', 'DINNER', 'RESTAURANT', 'KITCHEN', 'RECIPE',
+                               'MEDICINE', 'HOSPITAL', 'DOCTOR', 'NURSE', 'PATIENT', 'TREATMENT',
+                               'AIRPLANE', 'AIRPORT', 'FLIGHT', 'PILOT', 'PASSENGER', 'LUGGAGE',
+                               'MOUNTAIN', 'VALLEY', 'RIVER', 'OCEAN', 'DESERT', 'FOREST',
+                               'WEATHER', 'CLIMATE', 'TEMPERATURE', 'PRESSURE', 'HUMIDITY', 'RAINFALL',
+                               'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY',
+                               'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY',
+                               'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'CALENDAR',
+                               'BUILDING', 'STRUCTURE', 'ARCHITECT', 'ENGINEER', 'DESIGN', 'CONSTRUCT',
+                               'ELECTRIC', 'MAGNETIC', 'GRAVITY', 'ENERGY', 'POWER', 'FORCE',
+                               'MACHINE', 'ENGINE', 'MOTOR', 'GEAR', 'WHEEL', 'LEVER',
+                               'NEWSPAPER', 'MAGAZINE', 'ARTICLE', 'HEADLINE', 'JOURNALIST', 'EDITOR',
+                               'CAMERA', 'PHOTO', 'PICTURE', 'IMAGE', 'VIDEO', 'FILM',
+                               'SPORT', 'FOOTBALL', 'BASEBALL', 'BASKETBALL', 'TENNIS', 'GOLF',
+                               'EXERCISE', 'FITNESS', 'HEALTH', 'NUTRITION', 'VITAMIN', 'MINERAL',
+                               'GARDEN', 'PLANT', 'FLOWER', 'TREE', 'GRASS', 'SEED',
+                               'ANIMAL', 'MAMMAL', 'BIRD', 'FISH', 'REPTILE', 'INSECT',
+                               'CONTINENT', 'COUNTRY', 'NATION', 'STATE', 'PROVINCE', 'CITY',
+                               'VILLAGE', 'TOWN', 'SUBURB', 'NEIGHBORHOOD', 'STREET', 'AVENUE',
+                               'BRIDGE', 'TUNNEL', 'HIGHWAY', 'RAILWAY', 'STATION', 'TERMINAL'];
+        
+        // Check if a word is likely English (returns confidence level)
+        function analyzeWord(word) {
+            const upper = word.toUpperCase();
+            if (upper.length === 0) return { isValid: false, confidence: 0 };
+            
+            // Direct match with common words - high confidence
+            if (commonWords.includes(upper) || additionalWords.includes(upper)) {
+                return { isValid: true, confidence: 1.0 };
+            }
+            
+            // Single letters
+            if (upper.length === 1) {
+                if ('AEIOUaeiou'.includes(upper)) {
+                    return { isValid: true, confidence: 0.3 }; // Vowels get some credit
+                }
+                return { isValid: false, confidence: 0.1 };
+            }
+            
+            // Two letter words
+            if (upper.length === 2) {
+                const commonTwo = ['BE', 'TO', 'OF', 'IN', 'IT', 'ON', 'AT', 'AS', 'AN', 'BY', 'OR', 'SO', 'NO', 'IF', 'MY', 'ME', 'WE', 'HE', 'DO', 'GO', 'UP', 'IS'];
+                if (commonTwo.includes(upper)) {
+                    return { isValid: true, confidence: 1.0 };
+                }
+                return { isValid: false, confidence: 0.2 };
+            }
+            
+            // For longer words, check patterns
+            if (word.length >= 3) {
+                let confidence = 0;
+                
+                // Check for common endings - high confidence
+                const commonEndings = [
+                    { suffix: 'ING', conf: 0.8 },
+                    { suffix: 'TION', conf: 0.9 },
+                    { suffix: 'MENT', conf: 0.8 },
+                    { suffix: 'NESS', conf: 0.8 },
+                    { suffix: 'ABLE', conf: 0.7 },
+                    { suffix: 'IBLE', conf: 0.7 },
+                    { suffix: 'ENCE', conf: 0.7 },
+                    { suffix: 'ANCE', conf: 0.7 },
+                    { suffix: 'ED', conf: 0.6 },
+                    { suffix: 'ER', conf: 0.6 },
+                    { suffix: 'EST', conf: 0.6 },
+                    { suffix: 'LY', conf: 0.7 },
+                    { suffix: 'FUL', conf: 0.7 },
+                    { suffix: 'LESS', conf: 0.7 }
+                ];
+                
+                for (const { suffix, conf } of commonEndings) {
+                    if (upper.endsWith(suffix) && word.length > suffix.length + 2) {
+                        confidence = Math.max(confidence, conf);
+                    }
+                }
+                
+                // Check for common prefixes
+                const commonPrefixes = ['UN', 'RE', 'IN', 'DIS', 'EN', 'NON', 'PRE', 'PRO', 'ANTI', 'DE', 'OVER', 'UNDER', 'OUT'];
+                for (const prefix of commonPrefixes) {
+                    if (upper.startsWith(prefix) && word.length > prefix.length + 2) {
+                        confidence = Math.max(confidence, 0.6);
+                    }
+                }
+                
+                // Check for common bigrams
+                let bigramCount = 0;
+                for (const bigram of commonBigrams) {
+                    if (upper.includes(bigram)) {
+                        bigramCount++;
+                    }
+                }
+                if (bigramCount > 0) {
+                    confidence = Math.max(confidence, Math.min(0.7, bigramCount * 0.2));
+                }
+                
+                // Check for suspicious patterns (likely not English)
+                const suspiciousPatterns = [
+                    /[BCDFGHJKLMNPQRSTVWXYZ]{4,}/i, // Too many consonants in a row
+                    /([A-Z])\1{2,}/i, // Same letter repeated 3+ times
+                    /^[^AEIOU]+$/i, // No vowels at all (except for acronyms)
+                    /[QX]{2,}/i, // Multiple Q or X
+                ];
+                
+                for (const pattern of suspiciousPatterns) {
+                    if (pattern.test(upper) && upper.length > 3) {
+                        confidence *= 0.3; // Heavy penalty for suspicious patterns
+                    }
+                }
+                
+                return { isValid: confidence > 0.5, confidence: confidence };
+            }
+            
+            return { isValid: false, confidence: 0 };
+        }
+        
+        // Calculate confidence based on percentage of valid words
+        function calculateWordConfidence(text, returnWordAnalysis = false) {
+            // If no spaces, treat the entire text as one word being typed
+            const words = text.includes(' ') ? text.split(/\s+/).filter(w => w.length > 0) : [text];
+            if (words.length === 0 || (words.length === 1 && words[0].length === 0)) {
+                return returnWordAnalysis ? { confidence: 0, wordAnalysis: [] } : 0;
+            }
+            
+            let totalConfidence = 0;
+            const wordAnalysis = [];
+            
+            for (const word of words) {
+                // Remove punctuation for checking
+                const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+                
+                if (cleanWord.length === 0) continue;
+                
+                const analysis = analyzeWord(cleanWord);
+                wordAnalysis.push({ word: word, cleanWord: cleanWord, ...analysis });
+                totalConfidence += analysis.confidence;
+            }
+            
+            const confidence = (totalConfidence / words.length) * 100;
+            const finalConfidence = Math.min(100, Math.max(0, confidence));
+            
+            if (returnWordAnalysis) {
+                return { confidence: finalConfidence, wordAnalysis: wordAnalysis };
+            }
+            return finalConfidence;
+        }
+        
+        // Analyze text for English patterns (for initial detection)
+        function analyzeEnglishScore(text) {
+            const confidence = calculateWordConfidence(text);
+            // Convert confidence percentage to a score for comparison
+            return confidence * text.length / 100;
+        }
+        
+        // Find the best ROT offset with confidence tracking
+        async function findBestOffset(text) {
+            if (text.length < 3) return { offset: null, scores: {} };
+            
+            let scores = {};
+            let bestScore = 0;
+            let bestOffset = null;
+            
+            // Try all 26 possible rotations
+            for (let offset = 0; offset < 26; offset++) {
+                const decoded = rotCipher(text, offset);
+                const score = analyzeEnglishScore(decoded);
+                scores[offset] = score;
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestOffset = offset;
+                }
+            }
+            
+            // Calculate actual word-based confidence for each offset
+            const confidences = {};
+            for (let offset = 0; offset < 26; offset++) {
+                const decoded = rotCipher(text, offset);
+                confidences[offset] = calculateWordConfidence(decoded);
+            }
+            
+            // Find the best offset based on word confidence
+            let maxConfidence = 0;
+            let bestConfidenceOffset = null;
+            for (let offset in confidences) {
+                if (confidences[offset] > maxConfidence) {
+                    maxConfidence = confidences[offset];
+                    bestConfidenceOffset = parseInt(offset);
+                }
+            }
+            
+            // Lower threshold for single words being typed
+            const threshold = text.length < 10 ? 20 : 30;
+            
+            // Only return an offset if we have reasonable confidence
+            return {
+                offset: maxConfidence >= threshold ? bestConfidenceOffset : null,
+                scores: confidences,
+                topConfidence: maxConfidence
+            };
+        }
+        
+        // Display letters in boxes with word grouping
+        function displayLetters(text, row, isDecoded = false, noAnimation = false) {
+            row.innerHTML = '';
+            
+            if (!text) return;
+            
+            // For decoded text, analyze words for misspellings
+            let wordAnalysis = null;
+            if (isDecoded && currentOffset !== null) {
+                const result = calculateWordConfidence(text, true);
+                wordAnalysis = result.wordAnalysis;
+            }
+            
+            // Split text into words and spaces
+            const tokens = text.split(/(\s+)/);
+            let wordIndex = 0;
+            
+            tokens.forEach((token, tokenIndex) => {
+                if (token.match(/^\s+$/)) {
+                    // Handle spaces
+                    for (let i = 0; i < token.length; i++) {
+                        const box = document.createElement('div');
+                        box.className = 'letter-box space';
+                        box.textContent = ' ';
+                        row.appendChild(box);
+                    }
+                } else if (token.length > 0) {
+                    // Handle words
+                    const wordGroup = document.createElement('div');
+                    wordGroup.className = 'word-group';
+                    
+                    // Check if this word is misspelled
+                    if (isDecoded && wordAnalysis && wordAnalysis[wordIndex]) {
+                        const analysis = wordAnalysis[wordIndex];
+                        if (!analysis.isValid && analysis.confidence < 0.5) {
+                            wordGroup.classList.add('misspelled');
+                        }
+                        wordIndex++;
+                    }
+                    
+                    // Add letters to word group
+                    for (let i = 0; i < token.length; i++) {
+                        const box = document.createElement('div');
+                        box.className = 'letter-box';
+                        box.textContent = token[i];
+                        
+                        if (isDecoded && currentOffset !== null) {
+                            box.style.color = '#0ff';
+                            box.style.textShadow = '0 0 10px #0ff';
+                        }
+                        
+                        wordGroup.appendChild(box);
+                    }
+                    
+                    row.appendChild(wordGroup);
+                }
+            });
+        }
+        
+        // Show fanfare animation
+        function showFanfare() {
+            const fanfare = document.createElement('div');
+            fanfare.className = 'fanfare';
+            fanfare.textContent = 'CRACKED!';
+            document.body.appendChild(fanfare);
+            
+            // Create confetti
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#32CD32'][Math.floor(Math.random() * 5)];
+                    confetti.style.width = Math.random() * 10 + 5 + 'px';
+                    confetti.style.height = confetti.style.width;
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+            
+            setTimeout(() => fanfare.remove(), 2000);
+        }
+        
+        // Main input handler
+        messageInput.addEventListener('input', async (e) => {
+            const text = e.target.value;
+            
+            if (!text) {
+                originalRow.innerHTML = '';
+                decodedRow.innerHTML = '';
+                rotStatus.textContent = 'Waiting for input...';
+                currentOffset = null;
+                isLocked = false;
+                lockedConfidence = 0;
+                previousTextLength = 0;
+                resetWheels();
+                return;
+            }
+            
+            // Exit manual mode if active
+            if (isManualMode) {
+                exitManualMode();
+            }
+            
+            // Display original text
+            displayLetters(text, originalRow);
+            
+            // If already locked, evaluate confidence on new text
+            if (isLocked && currentOffset !== null) {
+                const decoded = rotCipher(text, currentOffset);
+                displayLetters(decoded, decodedRow, true);
+                
+                // Check confidence only on new content (what was just typed)
+                if (text.length > previousTextLength) {
+                    const newContent = text.substring(previousTextLength);
+                    const decodedNew = rotCipher(newContent, currentOffset);
+                    
+                    // Re-evaluate confidence on the entire decoded text
+                    const fullDecoded = rotCipher(text, currentOffset);
+                    lockedConfidence = calculateWordConfidence(fullDecoded);
+                    
+                    // Update status with current confidence
+                    const actualRotValue = (26 - currentOffset) % 26;
+                    if (lockedConfidence > 70) {
+                        rotStatus.textContent = `ROT-${actualRotValue} locked (${lockedConfidence.toFixed(0)}% confidence)`;
+                        rotStatus.style.color = '#00ff00';
+                        wheelCenter.style.background = 'radial-gradient(circle, #00ff00, #00cc00)';
+                    } else if (lockedConfidence > 40) {
+                        rotStatus.textContent = `ROT-${actualRotValue} uncertain (${lockedConfidence.toFixed(0)}% confidence)`;
+                        rotStatus.style.color = '#ff9900';
+                        wheelCenter.style.background = 'radial-gradient(circle, #ffcc00, #ff9900)';
+                    } else {
+                        // Confidence too low - unlock and re-analyze
+                        rotStatus.textContent = `ROT-${actualRotValue} failing - re-analyzing...`;
+                        rotStatus.style.color = '#ff0000';
+                        isLocked = false;
+                        resetWheels();
+                        // Don't return - let it re-analyze below
+                    }
+                }
+                
+                previousTextLength = text.length;
+                
+                if (isLocked) {
+                    return;
+                }
+            }
+            
+            // Start analysis
+            if (!isAnalyzing && !isLocked && !isManualMode) {
+                isAnalyzing = true;
+                rotStatus.textContent = 'Analyzing cipher...';
+                rotStatus.style.color = '#0ff';
+                
+                // Simulate analysis delay for effect
+                setTimeout(async () => {
+                    const result = await findBestOffset(text);
+                    const detectedOffset = result.offset;
+                    confidenceScores = result.scores;
+                    
+                    // Find top two candidates
+                    const sortedOffsets = Object.entries(confidenceScores)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 2);
+                    
+                    if (detectedOffset !== null && detectedOffset !== currentOffset) {
+                        currentOffset = detectedOffset;
+                        const actualRotValue = (26 - detectedOffset) % 26;
+                        
+                        // Check if there's a close competitor
+                        const topConfidence = sortedOffsets[0][1];
+                        const secondConfidence = sortedOffsets[1] ? sortedOffsets[1][1] : 0;
+                        
+                        // Get top candidates with significant confidence
+                        const candidates = sortedOffsets
+                            .filter(([_, conf]) => conf > 15)
+                            .map(([offset, conf]) => ({
+                                offset: (26 - parseInt(offset)) % 26,
+                                confidence: conf
+                            }));
+                        
+                        if (topConfidence >= 95) {
+                            // Very high confidence - lock it
+                            rotStatus.textContent = `ROT-${actualRotValue} detected! (${topConfidence.toFixed(0)}% confidence)`;
+                            rotStatus.style.color = '#00ff00';
+                            
+                            isLocked = true;
+                            lockedConfidence = topConfidence;
+                            previousTextLength = text.length;
+                            alignWheels(actualRotValue);
+                            
+                            if (currentOffset !== 0) {
+                                showFanfare();
+                            }
+                        } else {
+                            // Less than 95% confidence - keep searching
+                            rotStatus.textContent = `Analyzing... Best: ROT-${actualRotValue} (${topConfidence.toFixed(0)}%)`;
+                            rotStatus.style.color = '#ff9900';
+                            
+                            // Animate through top candidates
+                            animateWheelSearch(candidates.slice(0, 3), text); // Pass original text for real-time decoding
+                        }
+                    } else if (detectedOffset === null) {
+                        rotStatus.textContent = 'Analyzing... Need more text';
+                        rotStatus.style.color = '#ff9900';
+                        currentOffset = null;
+                        resetWheels();
+                    }
+                    
+                    // Display decoded text
+                    if (currentOffset !== null) {
+                        const decoded = rotCipher(text, currentOffset);
+                        displayLetters(decoded, decodedRow, true);
+                    } else {
+                        decodedRow.innerHTML = '';
+                    }
+                    
+                    isAnalyzing = false;
+                }, 500);
+            }
+        });
+        
+        // Encode plaintext message
+        function updateEncodedMessage() {
+            const plaintext = plaintextInput.value;
+            const encoded = rotCipher(plaintext, currentRotKey);
+            encodedOutput.textContent = encoded || '(Your encoded message will appear here)';
+        }
+        
+        // Handle plaintext input
+        plaintextInput.addEventListener('input', updateEncodedMessage);
+        
+        // Copy to clipboard
+        copyButton.addEventListener('click', () => {
+            const encoded = encodedOutput.textContent;
+            if (encoded && encoded !== '(Your encoded message will appear here)') {
+                navigator.clipboard.writeText(encoded).then(() => {
+                    copyButton.textContent = 'Copied!';
+                    copyButton.style.background = 'linear-gradient(145deg, #00ff00, #00cc00)';
+                    setTimeout(() => {
+                        copyButton.textContent = 'Copy Encoded Message';
+                        copyButton.style.background = 'linear-gradient(145deg, #0ff, #00cccc)';
+                    }, 2000);
+                }).catch(err => {
+                    alert('Failed to copy to clipboard');
+                });
+            }
+        });
+        
+        // Manual decoder wheel control
+        function enterManualMode() {
+            if (!isManualMode) {
+                isManualMode = true;
+                isLocked = false;
+                
+                // Stop any ongoing animations
+                if (wheelAnimation) {
+                    cancelAnimationFrame(wheelAnimation);
+                    wheelAnimation = null;
+                }
+                
+                // Stop base animations and remove transitions
+                outerWheel.style.animation = 'none';
+                innerWheel.style.animation = 'none';
+                outerWheel.classList.add('no-transition');
+                innerWheel.classList.add('no-transition');
+                
+                // Show scan button
+                scanButton.classList.add('visible');
+                
+                // Update status
+                rotStatus.textContent = 'Manual Mode - Drag wheel to decode';
+                rotStatus.style.color = '#ff9900';
+                
+                // Ensure wheel is visible
+                cipherWheel.classList.remove('faded');
+            }
+        }
+        
+        function exitManualMode() {
+            if (isManualMode) {
+                isManualMode = false;
+                scanButton.classList.remove('visible');
+                
+                // Resume automatic analysis if we have text
+                if (messageInput.value && messageInput.value.length >= 3) {
+                    isAnalyzing = false;
+                    isLocked = false;
+                    messageInput.dispatchEvent(new Event('input'));
+                }
+            }
+        }
+        
+        // Mouse events for decoder wheel
+        cipherWheel.addEventListener('mousedown', (e) => {
+            // Check if clicking on the wheel (not the center)
+            if (e.target.closest('.wheel') && messageInput.value) {
+                // Always allow grabbing control, even during automatic scanning
+                enterManualMode();
+                isDraggingDecoder = true;
+                cipherWheel.classList.add('dragging');
+                decoderStartAngle = getAngleFromMouse(e, cipherWheel);
+                const currentRotation = innerWheel.style.transform.match(/rotate\(([\-\d.]+)deg\)/);
+                decoderWheelStartRotation = currentRotation ? parseFloat(currentRotation[1]) : 0;
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingDecoder) return;
+            
+            const currentAngle = getAngleFromMouse(e, cipherWheel);
+            const angleDiff = currentAngle - decoderStartAngle;
+            const newRotation = decoderWheelStartRotation + angleDiff;
+            
+            // Apply rotation to inner wheel smoothly
+            innerWheel.style.transform = `translate(-50%, -50%) rotate(${newRotation}deg)`;
+            
+            // Calculate current offset from rotation
+            manualOffset = Math.round((-newRotation / (360 / 26)) % 26);
+            if (manualOffset < 0) manualOffset += 26;
+            
+            // Update center display
+            wheelCenter.textContent = manualOffset;
+            wheelCenter.style.background = 'radial-gradient(circle, #ffcc00, #ff9900)';
+            
+            // Decode text in real-time
+            if (messageInput.value) {
+                const decoded = rotCipher(messageInput.value, manualOffset);
+                displayLetters(decoded, decodedRow, true, true);
+                
+                // Calculate confidence for display
+                const confidence = calculateWordConfidence(decoded);
+                const actualRotValue = (26 - manualOffset) % 26;
+                rotStatus.textContent = `Manual: ROT-${actualRotValue} (${confidence.toFixed(0)}% confidence)`;
+                rotStatus.style.color = confidence > 70 ? '#00ff00' : '#ff9900';
+            }
+        });
+        
+        // Scan button click handler
+        scanButton.addEventListener('click', () => {
+            exitManualMode();
+        });
+        
+        // Initialize wheels on load
+        initializeWheels();
+        initializeRotSelector();
+        updateEncryptedMessage();
+        
+        // Set initial rotation for ROT-0 (A at top)
+        const initialRotation = 0;
+        rotSelectorWheel.style.transform = `rotate(${initialRotation}deg)`;
+        rotValueDisplay.style.transform = `translate(-50%, -50%) rotate(${-initialRotation}deg)`;
+    </script>
+</body>
+</html>
